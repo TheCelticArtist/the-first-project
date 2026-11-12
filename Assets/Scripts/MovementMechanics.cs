@@ -24,11 +24,18 @@ public class MovementMechanics : MonoBehaviour
     private bool isRunning;
     private bool jumpRequested;
 
+
+    [Header("Mouse Look")]
+
+
+    public float mouseSensitivity = 0.1f;
+    public float cameraPos = 0f;
+    private Vector2 lookInput;
     private void Awake()
     {
         controller = GetComponent<CharacterController>();
+        Cursor.lockState = CursorLockMode.Locked;
 
-        
         if (playerCamera == null)
         {
             Transform foundCam = transform.Find("CharView");
@@ -49,6 +56,7 @@ public class MovementMechanics : MonoBehaviour
     {
         HandleGravity();
         HandleMovement();
+        HandleMouseControl();
     }
 
     // INPUT CALLBACKS
@@ -69,6 +77,7 @@ public class MovementMechanics : MonoBehaviour
             jumpRequested = true;
         }
     }
+
 
     // GRAVITY LOGIC
     private void HandleGravity()
@@ -108,14 +117,36 @@ public class MovementMechanics : MonoBehaviour
             }
 
             controller.Move(moveDirection * targetSpeed * Time.deltaTime);
-
-            Quaternion targetRotation = Quaternion.LookRotation(moveDirection, Vector3.up);
-            transform.rotation = Quaternion.RotateTowards(
-                transform.rotation,
-                targetRotation,
-                rotateSpeed * Time.deltaTime);
         }
 
         controller.Move(velocity * Time.deltaTime);
     }
+
+   private void HandleMouseControl()
+   {
+      if (Mouse.current != null)
+      {
+
+
+            Vector2 mouseDelta = Mouse.current.delta.ReadValue();
+
+
+            // Turns Character movement only left and right.
+            float mouseX = mouseDelta.x * mouseSensitivity;
+            transform.Rotate(Vector3.up * mouseX);
+            // Turns camera with Character without the Character malfunctioning like a bot.
+            float mouseY = mouseDelta.y * mouseSensitivity;
+            cameraPos -= mouseY;
+
+            // So the Character doesnt break its neck.
+            cameraPos = Mathf.Clamp(cameraPos, -90f, 90f);
+
+
+            // So the players camera doesnt act on its own without the Character
+            if (playerCamera != null)
+            {
+                playerCamera.localRotation = Quaternion.Euler(cameraPos, 0f, 0f);
+            }
+      }
+   }
 }

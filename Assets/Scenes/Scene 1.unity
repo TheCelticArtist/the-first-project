@@ -519,6 +519,8 @@ MonoBehaviour:
   rotateSpeed: 780
   jumpHeight: 1.2
   gravity: -19.62
+  mouseSensitivity: 0.1
+  cameraPos: 0
 --- !u!143 &570986887
 CharacterController:
   m_ObjectHideFlags: 0
