@@ -37,6 +37,16 @@ public class MovementMechanics : MonoBehaviour
 
     private Vector2 lookInput;
 
+
+    [Header("Camera Switch")]
+    [Tooltip("PuzzleCamera")]
+    public Transform puzzleCamera;
+
+    // key to switch between CharView (3rd person) and PuzzleCamera (1st person), pick it from the inspector
+    public Key switchCameraKey = Key.C;
+
+    private bool isFirstPerson = false;
+
     private void Awake()
     {
         controller = GetComponent<CharacterController>();
@@ -51,7 +61,7 @@ public class MovementMechanics : MonoBehaviour
             }
             else
             {
-                
+
                 Camera childCam = GetComponentInChildren<Camera>();
                 if (childCam != null) playerCamera = childCam.transform;
             }
@@ -71,6 +81,24 @@ public class MovementMechanics : MonoBehaviour
                 if (childCam != null) cameraPivot = childCam.transform;
             }
         }
+
+        if (puzzleCamera == null)
+        {
+            Transform foundPuzzleCam = transform.Find("PuzzleCamera");
+            if (foundPuzzleCam != null)
+            {
+                puzzleCamera = foundPuzzleCam;
+            }
+            else if (cameraPivot != null)
+            {
+                // if its not under the Character, look for it under the CameraPivot
+                Transform foundPuzzleCamPiv = cameraPivot.Find("PuzzleCamera");
+                if (foundPuzzleCamPiv != null) puzzleCamera = foundPuzzleCamPiv;
+            }
+        }
+
+        // game always starts in 3rd person (CharView)
+        ApplyCameraMode();
     }
 
     private void Update()
@@ -78,6 +106,7 @@ public class MovementMechanics : MonoBehaviour
         HandleGravity();
         HandleMovement();
         HandleMouseControl();
+        HandleCameraSwitch();
     }
 
     // INPUT CALLBACKS
@@ -143,10 +172,10 @@ public class MovementMechanics : MonoBehaviour
         controller.Move(velocity * Time.deltaTime);
     }
 
-   private void HandleMouseControl()
-   {
-      if (Mouse.current != null)
-      {
+    private void HandleMouseControl()
+    {
+        if (Mouse.current != null)
+        {
 
             Vector2 mouseDelta = Mouse.current.delta.ReadValue();
 
@@ -205,6 +234,41 @@ public class MovementMechanics : MonoBehaviour
             {
                 playerCamera.localPosition = new Vector3(0f, 0f, -targetDist);
             }
-      }
-   }           
+        }
+    }
+
+    // CAMERA SWITCH LOGIC
+    private void HandleCameraSwitch()
+    {
+        // same check as left shift running, but with the key chosen in the inspector
+        if (Keyboard.current == null || switchCameraKey == Key.None) return;
+
+        // no PuzzleCamera = no switch, otherwise screen goes black
+        if (puzzleCamera == null) return;
+
+        if (Keyboard.current[switchCameraKey].wasPressedThisFrame)
+        {
+            isFirstPerson = !isFirstPerson;
+            ApplyCameraMode();
+        }
+    }
+
+    private void ApplyCameraMode()
+    {
+        // only one camera on at a time
+        SetCameraActive(playerCamera, !isFirstPerson);
+        SetCameraActive(puzzleCamera, isFirstPerson);
+    }
+
+    private void SetCameraActive(Transform cam, bool active)
+    {
+        if (cam == null) return;
+
+        Camera camComponent = cam.GetComponent<Camera>();
+        if (camComponent != null) camComponent.enabled = active;
+
+        // only one AudioListener at a time, otherwise Unity complains in the console
+        AudioListener listener = cam.GetComponent<AudioListener>();
+        if (listener != null) listener.enabled = active;
+    }
 }
