@@ -8,6 +8,8 @@ public class MovementMechanics : MonoBehaviour
     [Tooltip("CharView")]
     public Transform playerCamera;
 
+    public Transform cameraPivot;
+
     [Header("Movement")]
     public float walkSpeed = 3f;
     public float runSpeed = 8f;
@@ -27,10 +29,14 @@ public class MovementMechanics : MonoBehaviour
 
     [Header("Mouse Look")]
 
-
     public float mouseSensitivity = 0.1f;
-    public float cameraPos = 0f;
+    public float cameraPos = 1f;
+    public float currentDist = 6f;
+    public float maxZoom = 10f;
+    public float minZoom = 4f;
+
     private Vector2 lookInput;
+
     private void Awake()
     {
         controller = GetComponent<CharacterController>();
@@ -48,6 +54,21 @@ public class MovementMechanics : MonoBehaviour
                 
                 Camera childCam = GetComponentInChildren<Camera>();
                 if (childCam != null) playerCamera = childCam.transform;
+            }
+        }
+
+        if (cameraPivot == null)
+        {
+            Transform foundCamPiv = transform.Find("CameraPivot");
+            if (foundCamPiv != null)
+            {
+                cameraPivot = foundCamPiv;
+            }
+            else
+            {
+
+                Camera childCam = GetComponentInChildren<Camera>();
+                if (childCam != null) cameraPivot = childCam.transform;
             }
         }
     }
@@ -127,26 +148,63 @@ public class MovementMechanics : MonoBehaviour
       if (Mouse.current != null)
       {
 
-
             Vector2 mouseDelta = Mouse.current.delta.ReadValue();
 
-
-            // Turns Character movement only left and right.
+            // turns Character movement only left and right.
             float mouseX = mouseDelta.x * mouseSensitivity;
             transform.Rotate(Vector3.up * mouseX);
-            // Turns camera with Character without the Character malfunctioning like a bot.
+            // turns camera with Character without the Character malfunctioning like a bot.
             float mouseY = mouseDelta.y * mouseSensitivity;
             cameraPos -= mouseY;
 
-            // So the Character doesnt break its neck.
-            cameraPos = Mathf.Clamp(cameraPos, -90f, 90f);
+            // so the Character doesnt break its neck.
+            cameraPos = Mathf.Clamp(cameraPos, -65f, 65f);
 
 
-            // So the players camera doesnt act on its own without the Character
+            // scroll wheel
+
+            Vector2 mouseScroll = Mouse.current.scroll.ReadValue();
+
+            if (mouseScroll.y != 0f)
+            {
+                currentDist -= mouseScroll.y * 0.2f;
+
+                //limits the chars scroll so it doesnt go insane, hopefully.
+
+                currentDist = Mathf.Clamp(currentDist, minZoom, maxZoom);
+            }
+
+            // if camera isnt found add new camera
+
             if (playerCamera != null)
             {
-                playerCamera.localRotation = Quaternion.Euler(cameraPos, 0f, 0f);
+                playerCamera.localPosition = new Vector3(0f, 0f, -currentDist);
+            }
+
+
+            // so the players camera doesnt act on its own without the Character
+            if (cameraPivot != null)
+            {
+                cameraPivot.localRotation = Quaternion.Euler(cameraPos, 0f, 0f);
+            }
+
+            // raycast collision systema oh yes
+
+            float targetDist = currentDist;
+
+            RaycastHit hit;
+
+            if (Physics.Raycast(cameraPivot.position, -cameraPivot.forward, out hit, currentDist))
+            {
+                targetDist = hit.distance - 0.2f;
+
+                targetDist = Mathf.Clamp(targetDist, 0.2f, currentDist);
+            }
+
+            if (playerCamera != null)
+            {
+                playerCamera.localPosition = new Vector3(0f, 0f, -targetDist);
             }
       }
-   }
+   }           
 }
