@@ -86,11 +86,6 @@ public class MovementMechanics : MonoBehaviour
         moveInput = inputValue.Get<Vector2>();
     }
 
-    private void OnRun(InputValue inputValue)
-    {
-        isRunning = inputValue.isPressed;
-    }
-
     private void OnJump(InputValue inputValue)
     {
         if (isGrounded)
@@ -121,6 +116,11 @@ public class MovementMechanics : MonoBehaviour
 
     private void HandleMovement()
     {
+
+        // left shift running if function
+
+        isRunning = Keyboard.current != null && Keyboard.current.leftShiftKey.isPressed;
+
         Vector3 inputDirection = new Vector3(moveInput.x, 0f, moveInput.y);
 
         if (inputDirection.sqrMagnitude > 1f)
